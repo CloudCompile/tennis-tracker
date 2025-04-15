@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Tennis Tracker</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #facc15, #ec4899, #8b5cf6);
+      color: white;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px #00000044;
+    }
+    .nav, .filter {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      border: none;
+      background: black;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: white;
+      color: black;
+    }
+    form {
+      max-width: 500px;
+      margin: 0 auto 20px;
+      background-color: #00000033;
+      padding: 20px;
+      border-radius: 12px;
+    }
+    input, textarea, select {
+      display: block;
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+    .stats, .recent-matches {
+      text-align: center;
+    }
+    .stats li, .recent-matches li {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    function TennisTracker() {
+      const [practice, setPractice] = React.useState([]);
+      const [matches, setMatches] = React.useState([]);
+      const [view, setView] = React.useState("home");
+      const [filter, setFilter] = React.useState("All");
+
+      React.useEffect(() => {
+        const savedPractice = JSON.parse(localStorage.getItem("practice")) || [];
+        const savedMatches = JSON.parse(localStorage.getItem("matches")) || [];
+        setPractice(savedPractice);
+        setMatches(savedMatches);
+      }, []);
+
+      React.useEffect(() => {
+        localStorage.setItem("practice", JSON.stringify(practice));
+        localStorage.setItem("matches", JSON.stringify(matches));
+      }, [practice, matches]);
+
+      const addPractice = (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const newEntry = {
+          date: form.date.value,
+          duration: form.duration.value,
+          focus: form.focus.value,
+          notes: form.notes.value,
+        };
+        setPractice(prev => [...prev, newEntry]);
+        form.reset();
+      };
+
+      const addMatch = (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const newMatch = {
+          date: form.date.value,
+          opponent: form.opponent.value,
+          score: form.score.value,
+          result: form.result.value,
+          rating: parseInt(form.rating.value),
+          notes: form.notes.value,
+        };
+        setMatches(prev => [...prev, newMatch]);
+        form.reset();
+      };
+
+      const filteredMatches = matches.filter(m =>
+        filter === "All" || m.result === filter
+      );
+
+      const winRate = filteredMatches.length > 0
+        ? ((filteredMatches.filter(m => m.result === "Win").length / filteredMatches.length) * 100).toFixed(1)
+        : 0;
+
+      const avgRating = matches.length > 0
+        ? (matches.reduce((sum, m) => sum + (m.rating || 0), 0) / matches.length).toFixed(1)
+        : "N/A";
+
+      return (
+        <div>
+          <h1>🎾 Tennis Tracker v1.1 🎾</h1>
+          <div className="nav">
+            <button onClick={() => setView("home")}>Home</button>
+            <button onClick={() => setView("practice")}>Practice</button>
+            <button onClick={() => setView("match")}>Matches</button>
+            <button onClick={() => setView("stats")}>Stats</button>
+          </div>
+
+          {view === "home" && (
+            <p style={{ textAlign: "center" }}>
+              Welcome to Tennis Tracker v1.1 – now with filters and ratings! 🎉
+            </p>
+          )}
+
+          {view === "practice" && (
+            <form onSubmit={addPractice}>
+              <input name="date" type="date" required />
+              <input name="duration" placeholder="Duration (mins)" required />
+              <input name="focus" placeholder="Focus area" required />
+              <textarea name="notes" placeholder="Notes" />
+              <button type="submit">Add Practice</button>
+            </form>
+          )}
+
+          {view === "match" && (
+            <>
+              <form onSubmit={addMatch}>
+                <input name="date" type="date" required />
+                <input name="opponent" placeholder="Opponent name" required />
+                <input name="score" placeholder="Score (e.g., 6-3, 4-6, 7-5)" required />
+                <select name="result" required>
+                  <option value="Win">Win</option>
+                  <option value="Loss">Loss</option>
+                </select>
+                <input name="rating" type="number" min="1" max="10" placeholder="Your performance rating (1–10)" required />
+                <textarea name="notes" placeholder="Notes" />
+                <button type="submit">Add Match</button>
+              </form>
+              <div className="recent-matches">
+                <h3>Recent Matches</h3>
+                <ul style={{ listStyle: "none", padding: 0 }}>
+                  {matches.slice(-5).reverse().map((m, i) => (
+                    <li key={i} style={{ color: m.result === 'Win' ? '#4ade80' : '#f87171' }}>
+                      {m.date} vs {m.opponent} - {m.score} ({m.result}) | Rating: {m.rating}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          {view === "stats" && (
+            <div className="stats">
+              <div className="filter">
+                <button onClick={() => setFilter("All")}>All</button>
+                <button onClick={() => setFilter("Win")}>Wins</button>
+                <button onClick={() => setFilter("Loss")}>Losses</button>
+              </div>
+              <p>Win Rate: {winRate}%</p>
+              <p>Avg Rating: {avgRating}</p>
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {filteredMatches.map((m, i) => (
+                  <li key={i} style={{ color: m.result === 'Win' ? '#4ade80' : '#f87171' }}>
+                    {m.date}: {m.result} – Rating: {m.rating}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<TennisTracker />);
+  </script>
+</body>
+</html>
